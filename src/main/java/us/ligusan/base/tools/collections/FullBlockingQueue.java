@@ -9,7 +9,7 @@ import java.util.concurrent.locks.LockSupport;
 import org.apache.commons.collections4.IteratorUtils;
 
 /**
- * Always full, always empty blocking queue.
+ * Always full, blocking queue. Waiting on {@link #poll(long, TimeUnit)}
  * 
  * @author Alexander Prishchepov
  */
@@ -54,6 +54,9 @@ public class FullBlockingQueue<E> extends AbstractQueue<E> implements BlockingQu
     @Override
     public E poll(final long pTimeout, final TimeUnit pUnit) throws InterruptedException
     {
+        // san - Dec 10, 2018 10:27:27 PM : will wait
+        LockSupport.parkNanos(pUnit.toNanos(pTimeout));
+
         return null;
     }
     @Override
