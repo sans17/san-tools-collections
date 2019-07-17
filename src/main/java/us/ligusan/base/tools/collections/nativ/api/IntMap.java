@@ -1,6 +1,7 @@
 package us.ligusan.base.tools.collections.nativ.api;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -36,6 +37,10 @@ public interface IntMap<V>
         {
             return (key, value) -> pAfter.apply(key, apply(key, value));
         }
+    }
+    public static interface IntTriFunction<V>
+    {
+        V apply(int key, V valueOne, V valueTwo);
     }
 
     int size();
@@ -111,6 +116,13 @@ public interface IntMap<V>
         return containsKey(pKey) ? put(pKey, pNewValue) : null;
     }
 
+    /**
+     * Differences with {@link Map#computeIfAbsent(Object, java.util.function.Function)} method: <ol><li>null value considered as present</li><li>if mapping function returns null, null is inserted into map</li></ol>
+     * 
+     * @param pKey key with which the specified value is to be associated
+     * @param pMappingFunction the function to compute a value
+     * @return the current (existing or computed) value associated with the specified key
+     */
     default V computeIfAbsent(final int pKey, final IntFunction<? extends V> pMappingFunction)
     {
         V ret = get(pKey);
@@ -118,6 +130,13 @@ public interface IntMap<V>
         return ret;
     }
 
+    /**
+     * Differences with {@link Map#computeIfPresent(Object, BiFunction)} method: <ol><li>null value considered as present</li><li>if remapping function returns null, null is inserted into map</li></ol>
+     * 
+     * @param pKey key with which the specified value is to be associated
+     * @param pRemappingFunction the function to compute a value
+     * @return the new value associated with the specified key
+     */
     default V computeIfPresent(final int pKey, final IntBiFunction<V> pRemappingFunction)
     {
         V lCurrentValue = get(pKey);
@@ -130,6 +149,13 @@ public interface IntMap<V>
         return null;
     }
 
+    /**
+     * Difference with {@link Map#compute(Object, BiFunction)} method: this one does not remove the key
+     * 
+     * @param pKey key with which the specified value is to be associated
+     * @param pRemappingFunction the function to compute a value
+     * @return the new value associated with the specified key
+     */
     default V compute(final int pKey, final IntBiFunction<V> pRemappingFunction)
     {
         V ret = pRemappingFunction.apply(pKey, get(pKey));
@@ -137,9 +163,9 @@ public interface IntMap<V>
         return ret;
     }
 
-    default V merge(final int pKey, final V pValue, final BiFunction<? super V, ? super V, ? extends V> pRemappingFunction)
+    default V merge(final int pKey, final V pValue, final IntTriFunction<V> pRemappingFunction)
     {
-        V ret = pRemappingFunction.apply(get(pKey), pValue);
+        V ret = pRemappingFunction.apply(pKey, get(pKey), pValue);
         put(pKey, ret);
         return ret;
     }
