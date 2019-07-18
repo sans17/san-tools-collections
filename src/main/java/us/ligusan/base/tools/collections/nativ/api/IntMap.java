@@ -57,7 +57,11 @@ public interface IntMap<V>
     V put(int key, V value);
     V remove(int key);
 
-    void putAll(IntMap<? extends V> mapToAdd);
+    default void putAll(final IntMap<? extends V> pMapToAdd)
+    {
+        for(IntEntry<? extends V> lEntry : pMapToAdd.entrySet())
+            put(lEntry.getKey(), lEntry.getValue());
+    }
 
     void clear();
 

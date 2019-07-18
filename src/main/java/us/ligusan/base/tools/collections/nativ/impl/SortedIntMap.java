@@ -1,8 +1,14 @@
 package us.ligusan.base.tools.collections.nativ.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.Objects;
+import java.util.PrimitiveIterator.OfInt;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.stream.IntStream;
 import us.ligusan.base.tools.collections.nativ.api.IntMap;
 import us.ligusan.base.tools.collections.nativ.api.IntSet;
 
@@ -11,82 +17,409 @@ public class SortedIntMap<V> implements IntMap<V>
     private int[] keys;
     private ArrayList<V> values;
     
+    public SortedIntMap()
+    {
+      values = new ArrayList<>();
+    }
     
     @Override
     public int size()
     {
-        // TODO Auto-generated method stub
-        return 0;
+        return values.size();
+    }
+
+    protected int getIndex(final int pKey) {
+        int lSize = size();
+        // AlexP - Jun 25, 2019 4:38:25 PM : when current size is 0, insertion point is 0
+        return lSize > 0 ? Arrays.binarySearch(keys, 0, size(), pKey) : -1;
+    }
+    
+    @Override
+    public boolean containsKey(final int pKey)
+    {
+        return getIndex(pKey) >= 0;
     }
 
     @Override
-    public boolean containsKey(int key)
+    public boolean containsValue(final V pValue)
     {
-        // TODO Auto-generated method stub
-        return false;
+        return values.contains(pValue);
     }
 
     @Override
-    public boolean containsValue(V value)
+    public V get(final int pKey)
     {
-        // TODO Auto-generated method stub
-        return false;
+        int lIndex = getIndex(pKey);
+        return lIndex < 0 ? null : values.get(lIndex);
     }
 
+    protected int sizeIncrease(final int pCurrentSize) {
+        // AlexP - Jun 25, 2019 5:30:02 PM : increase by 10? in ArrayList they use: oldCapacity + (oldCapacity >> 1)
+        return pCurrentSize + 10;
+    }
+    
     @Override
-    public V get(int key)
+    public V put(final int pKey, final V pValue)
     {
-        // TODO Auto-generated method stub
-        return null;
+        int lIndex = getIndex(pKey);
+        // AlexP - Jun 25, 2019 4:19:18 PM : insertion
+        if(lIndex < 0)
+        {
+            // AlexP - Jun 25, 2019 5:55:33 PM : insertion index
+            lIndex = -++lIndex;
+
+            // AlexP - Jun 26, 2019 11:35:18 AM : where we copy to (might be the same as where we copy from)
+            int[] lNewKeys = keys;
+            int lLength = keys == null ? 0 : keys.length;
+            int lSize = size();
+            // AlexP - Jun 26, 2019 9:21:32 AM : need to increase keys size
+            if(lLength <= lSize)
+            {
+                // AlexP - Jun 26, 2019 9:32:11 AM : assigning new keys
+                lNewKeys = new int[sizeIncrease(lLength)];
+
+                // AlexP - Jun 26, 2019 9:27:48 AM : #1 copy left side
+                if(lIndex > 0) System.arraycopy(keys, 0, lNewKeys, 0, lIndex);
+            }
+            // AlexP - Jun 26, 2019 9:28:13 AM : #2 copy right side (in case it is the same array)
+            if(lIndex < lSize) System.arraycopy(keys, lIndex, lNewKeys, lIndex + 1, lSize - lIndex);
+            // AlexP - Jun 26, 2019 9:29:21 AM : #3 setting new key
+            lNewKeys[lIndex] = pKey;
+
+            // AlexP - Jul 18, 2019 11:40:17 AM : reset keys
+            keys = lNewKeys;
+            // AlexP - Jun 26, 2019 9:20:28 AM : adding value
+            values.add(lIndex, pValue);
+
+            // AlexP - Jul 18, 2019 11:44:44 AM : no old value - return null
+            return null;
+        }
+        // AlexP - Jun 25, 2019 5:41:53 PM : update
+        else return values.set(lIndex, pValue);
     }
 
-    @Override
-    public V put(int key, V value)
-    {
-        // TODO Auto-generated method stub
-        return null;
+    protected V removeByIndex(final int pIndex) {
+        int lNewSize = size() - 1;
+        // AlexP - Jun 25, 2019 4:16:23 PM : need to copy only if not last element
+        if (pIndex < lNewSize)
+          System.arraycopy(keys, pIndex + 1, keys, pIndex, lNewSize - pIndex);
+        // AlexP - Jul 18, 2019 12:35:28 PM : remove and return
+        return values.remove(pIndex);
     }
-
+    
     @Override
-    public V remove(int key)
+    public V remove(final int pKey)
     {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public void putAll(IntMap<? extends V> mapToAdd)
-    {
-        // TODO Auto-generated method stub
-        
+        int lIndex = getIndex(pKey);
+        // AlexP - Jul 18, 2019 1:49:57 PM : not found return null
+        return lIndex < 0 ? null : removeByIndex(lIndex);
     }
 
     @Override
     public void clear()
     {
-        // TODO Auto-generated method stub
-        
+        values.clear();
     }
 
     @Override
     public IntSet keySet()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return new IntSet()
+            {
+                @Override
+                public int[] toArray()
+                {
+                    int lSize = size();
+                    int[] ret = new int[lSize];
+                    if(lSize >0) System.arraycopy(keys, 0, ret, 0, lSize);
+                    return ret;
+                }
+                
+                @Override
+                public IntStream stream()
+                {
+                    return size() > 0 ? IntStream.of(keys) : IntStream.empty();
+                }
+                
+                @Override
+                public Spliterator.OfInt spliterator()
+                {
+                    // TODO Auto-generated method stub
+                    return null;
+                }
+                
+                @Override
+                public int size()
+                {
+                    return values.size();
+                }
+                
+                @Override
+                public boolean remove(final int pIntToRemove)
+                {
+                    int lIndex = getIndex(pIntToRemove);
+                    boolean ret = lIndex >= 0;
+                    if(ret) removeByIndex(lIndex);
+                    return ret;
+                }
+                
+                @Override
+                public IntStream parallelStream()
+                {
+                    return stream().parallel();
+                }
+                
+                /**
+                 * Not fail fast implementation.
+                 */
+                @Override
+                public OfInt iterator()
+                {
+                    return new OfInt()
+                        {
+                            private int index;
+
+                            @Override
+                            public boolean hasNext()
+                            {
+                                return index < size();
+                            }
+
+                            @Override
+                            public void remove()
+                            {
+                                // TODO aprishchepov - Jul 18, 2019 3:47:17 PM remove : 
+                                if() removeByIndex(index);
+                            }
+
+                            @Override
+                            public int nextInt()
+                            {
+                                return keys[index++];
+                            }
+                        };
+                }
+                
+                @Override
+                public void clear()
+                {
+                    SortedIntMap.this.clear();
+                }
+            };
     }
 
     @Override
     public Collection<V> values()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return new Collection<V>()
+            {
+                @Override
+                public int size()
+                {
+                    return values.size();
+                }
+
+                @Override
+                public boolean isEmpty()
+                {
+                    return values.isEmpty();
+                }
+
+                @Override
+                public boolean contains(final Object pObjectToCheck)
+                {
+                    return values.contains(pObjectToCheck);
+                }
+
+                @Override
+                public Iterator<V> iterator()
+                {
+                    // TODO aprishchepov - Jul 18, 2019 3:43:48 PM iterator : 
+                    return null;
+                }
+
+                @Override
+                public Object[] toArray()
+                {
+                    return values.toArray();
+                }
+
+                @Override
+                public <T> T[] toArray(final T[] pArray)
+                {
+                    return values.toArray(pArray);
+                }
+
+                @Override
+                public boolean add(final V pValue)
+                {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public boolean remove(final Object pObjectToRemove)
+                {
+                    int lIndex = values.indexOf(pObjectToRemove);
+                    boolean ret = lIndex >= 0;
+                    if(ret) removeByIndex(lIndex);
+                    return ret;
+                }
+
+                @Override
+                public boolean containsAll(final Collection<?> pCollectionToCheck)
+                {
+                    return values.containsAll(pCollectionToCheck);
+                }
+
+                @Override
+                public boolean addAll(final Collection<? extends V> pCollectionToAdd)
+                {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public boolean removeAll(final Collection<?> pCollectionToRemove)
+                {
+                    boolean ret = false;
+                    for(Object lObject : pCollectionToRemove)
+                        if(remove(lObject)) ret = true;
+                    return ret;
+                }
+
+                @Override
+                public boolean retainAll(final Collection<?> pCollectionToRetain)
+                {
+                    boolean ret = false;
+                    // AlexP - Jul 18, 2019 3:34:12 PM : going from the end in hope to minimize copying
+                    for(int i = size() - 1; i >= 0; i--)
+                        if(!pCollectionToRetain.contains(values.get(i)))
+                        {
+                            removeByIndex(i);
+                            ret = true;
+                        }
+                    return ret;
+                }
+
+                @Override
+                public void clear()
+                {
+                    values.clear();
+                }
+            };
     }
 
     @Override
     public Set<IntEntry<V>> entrySet()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return new Set<IntEntry<V>>()
+            {
+                @Override
+                public int size()
+                {
+                    return values.size();
+                }
+
+                @Override
+                public boolean isEmpty()
+                {
+                    return values.isEmpty();
+                }
+
+                @Override
+                public boolean contains(final Object pObjectToCheck)
+                {
+                    if(pObjectToCheck instanceof IntEntry)
+                    {
+                        IntEntry<?> lIntEntry = (IntEntry)pObjectToCheck;
+                        return Objects.equals(get(lIntEntry.getKey()), lIntEntry.getValue());
+                    }
+
+                    return false;
+                }
+
+                @Override
+                public Iterator<IntEntry<V>> iterator()
+                {
+                    return new Iterator<IntEntry<V>>()
+                        {
+
+                            @Override
+                            public boolean hasNext()
+                            {
+                                // TODO Auto-generated method stub
+                                return false;
+                            }
+
+                            @Override
+                            public IntEntry<V> next()
+                            {
+                                // TODO Auto-generated method stub
+                                return null;
+                            }};
+                }
+
+                @Override
+                public Object[] toArray()
+                {
+                    // TODO Auto-generated method stub
+                    return null;
+                }
+
+                @Override
+                public <T> T[] toArray(T[] pA)
+                {
+                    // TODO Auto-generated method stub
+                    return null;
+                }
+
+                @Override
+                public boolean add(IntEntry<V> pE)
+                {
+                    // TODO Auto-generated method stub
+                    return false;
+                }
+
+                @Override
+                public boolean remove(Object pO)
+                {
+                    // TODO Auto-generated method stub
+                    return false;
+                }
+
+                @Override
+                public boolean containsAll(Collection<?> pC)
+                {
+                    // TODO Auto-generated method stub
+                    return false;
+                }
+
+                @Override
+                public boolean addAll(Collection<? extends IntEntry<V>> pC)
+                {
+                    // TODO Auto-generated method stub
+                    return false;
+                }
+
+                @Override
+                public boolean retainAll(Collection<?> pC)
+                {
+                    // TODO Auto-generated method stub
+                    return false;
+                }
+
+                @Override
+                public boolean removeAll(Collection<?> pC)
+                {
+                    // TODO Auto-generated method stub
+                    return false;
+                }
+
+                @Override
+                public void clear()
+                {
+                    // TODO Auto-generated method stub
+                    
+                }};
     }
 
 }

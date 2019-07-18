@@ -24,7 +24,9 @@ public interface IntCollection
 
     int[] toArray();
 
-    boolean add(int intToAdd);
+    default boolean add(final int pIntToAdd) {
+        throw new UnsupportedOperationException();
+    }
 
     boolean remove(int intToRemove);
 
