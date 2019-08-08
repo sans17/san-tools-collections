@@ -1,5 +1,6 @@
 package us.ligusan.base.tools.collections.nativ.impl;
 
+import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -8,7 +9,9 @@ import java.util.Objects;
 import java.util.PrimitiveIterator.OfInt;
 import java.util.Set;
 import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.stream.IntStream;
+
 import us.ligusan.base.tools.collections.nativ.api.IntMap;
 import us.ligusan.base.tools.collections.nativ.api.IntSet;
 
@@ -144,8 +147,7 @@ public class SortedIntMap<V> implements IntMap<V>
                 @Override
                 public Spliterator.OfInt spliterator()
                 {
-                    // TODO Auto-generated method stub
-                    return null;
+                    return Spliterators.spliterator(iterator(), size(), Spliterator.ORDERED | Spliterator.DISTINCT | Spliterator.SORTED | Spliterator.SIZED | Spliterator.NONNULL);
                 }
                 
                 @Override
@@ -186,16 +188,15 @@ public class SortedIntMap<V> implements IntMap<V>
                             }
 
                             @Override
-                            public void remove()
-                            {
-                                // TODO aprishchepov - Jul 18, 2019 3:47:17 PM remove : 
-                                if() removeByIndex(index);
-                            }
-
-                            @Override
                             public int nextInt()
                             {
                                 return keys[index++];
+                            }
+
+                            @Override
+                            public void remove()
+                            {
+                                removeByIndex(index - 1);
                             }
                         };
                 }
@@ -231,11 +232,30 @@ public class SortedIntMap<V> implements IntMap<V>
                     return values.contains(pObjectToCheck);
                 }
 
+                /**
+                 * Not fail fast implementation.
+                 */
                 @Override
                 public Iterator<V> iterator()
                 {
-                    // TODO aprishchepov - Jul 18, 2019 3:43:48 PM iterator : 
-                    return null;
+                    return new Iterator<V>() {
+                        private int index;
+
+						@Override
+						public boolean hasNext() {
+                            return index < size();
+						}
+
+						@Override
+						public V next() {
+							return values.get(index++);
+						}
+
+						@Override
+						public void remove() {
+                            removeByIndex(index - 1);
+						}
+					};
                 }
 
                 @Override
@@ -311,7 +331,7 @@ public class SortedIntMap<V> implements IntMap<V>
     @Override
     public Set<IntEntry<V>> entrySet()
     {
-        return new Set<IntEntry<V>>()
+        return new AbstractSet<IntEntry<V>>()
             {
                 @Override
                 public int size()
@@ -333,93 +353,76 @@ public class SortedIntMap<V> implements IntMap<V>
                         IntEntry<?> lIntEntry = (IntEntry)pObjectToCheck;
                         return Objects.equals(get(lIntEntry.getKey()), lIntEntry.getValue());
                     }
-
                     return false;
                 }
 
+                /**
+                 * Not fail fast implementation.
+                 */
                 @Override
                 public Iterator<IntEntry<V>> iterator()
                 {
                     return new Iterator<IntEntry<V>>()
                         {
+                            private int index;
 
                             @Override
                             public boolean hasNext()
                             {
-                                // TODO Auto-generated method stub
-                                return false;
+                                return index < size();
                             }
 
                             @Override
                             public IntEntry<V> next()
                             {
-                                // TODO Auto-generated method stub
-                                return null;
-                            }};
+                                int lIndex = index++;
+
+                                return new IntEntry<V>()
+                                    {
+                                        @Override
+                                        public int getKey()
+                                        {
+                                            return keys[lIndex];
+                                        }
+
+                                        @Override
+                                        public V getValue()
+                                        {
+                                            return values.get(lIndex);
+                                        }
+
+                                        @Override
+                                        public void setValue(final V pValue)
+                                        {
+                                            values.set(lIndex, pValue);
+                                        }
+                                    };
+                            }
+
+                            @Override
+                            public void remove()
+                            {
+                                removeByIndex(index - 1);
+                            }
+                        };
                 }
 
                 @Override
-                public Object[] toArray()
+                public boolean remove(final Object pObjectToRemove)
                 {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
-
-                @Override
-                public <T> T[] toArray(T[] pA)
-                {
-                    // TODO Auto-generated method stub
-                    return null;
-                }
-
-                @Override
-                public boolean add(IntEntry<V> pE)
-                {
-                    // TODO Auto-generated method stub
-                    return false;
-                }
-
-                @Override
-                public boolean remove(Object pO)
-                {
-                    // TODO Auto-generated method stub
-                    return false;
-                }
-
-                @Override
-                public boolean containsAll(Collection<?> pC)
-                {
-                    // TODO Auto-generated method stub
-                    return false;
-                }
-
-                @Override
-                public boolean addAll(Collection<? extends IntEntry<V>> pC)
-                {
-                    // TODO Auto-generated method stub
-                    return false;
-                }
-
-                @Override
-                public boolean retainAll(Collection<?> pC)
-                {
-                    // TODO Auto-generated method stub
-                    return false;
-                }
-
-                @Override
-                public boolean removeAll(Collection<?> pC)
-                {
-                    // TODO Auto-generated method stub
+                    if(pObjectToRemove instanceof IntEntry)
+                    {
+                        IntEntry<V> lIntEntry = (IntEntry)pObjectToRemove;
+                        return SortedIntMap.this.remove(lIntEntry.getKey(), lIntEntry.getValue());
+                    }
                     return false;
                 }
 
                 @Override
                 public void clear()
                 {
-                    // TODO Auto-generated method stub
-                    
-                }};
+                    values.clear();
+                }
+            };
     }
-
 }
