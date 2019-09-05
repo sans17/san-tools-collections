@@ -34,7 +34,7 @@ public class SortedIntMap<V> implements IntMap<V>
     protected int getIndex(final int pKey) {
         int lSize = size();
         // AlexP - Jun 25, 2019 4:38:25 PM : when current size is 0, insertion point is 0
-        return lSize > 0 ? Arrays.binarySearch(keys, 0, size(), pKey) : -1;
+        return lSize > 0 ? Arrays.binarySearch(keys, 0, lSize, pKey) : -1;
     }
     
     @Override
@@ -134,7 +134,7 @@ public class SortedIntMap<V> implements IntMap<V>
                 {
                     int lSize = size();
                     int[] ret = new int[lSize];
-                    if(lSize >0) System.arraycopy(keys, 0, ret, 0, lSize);
+                    if(lSize > 0) System.arraycopy(keys, 0, ret, 0, lSize);
                     return ret;
                 }
                 
