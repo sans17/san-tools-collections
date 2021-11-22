@@ -7,7 +7,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.IteratorUtils;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Always empty, always full, blocking queue. Only waited operations are respected.
@@ -25,12 +24,6 @@ public class FullBlockingQueue<E> extends AbstractQueue<E> implements BlockingQu
         waitingElementsQueue = new LinkedBlockingQueue<HardReference<E>>();
     }
 
-    @Override
-    public String toString()
-    {
-        return new ToStringBuilder(this).appendSuper(super.toString()).append("waitingElementsQueue", waitingElementsQueue).toString();
-    }
-    
     protected E dereference(final HardReference<E> pReference)
     {
         // san - Jan 6, 2019 1:48:52 PM : nobody's offering
